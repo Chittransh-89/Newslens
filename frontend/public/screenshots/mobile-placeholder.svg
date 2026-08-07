@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="720" viewBox="0 0 390 720" role="img" aria-labelledby="title desc">
+  <title id="title">Mobile screenshot placeholder</title>
+  <desc id="desc">Replace with a NewsLens mobile dashboard screenshot.</desc>
+  <rect width="390" height="720" fill="#f8fafc"/>
+  <rect x="30" y="28" width="330" height="664" rx="28" fill="#ffffff" stroke="#cbd5e1" stroke-width="3"/>
+  <text x="195" y="325" fill="#334155" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle">Mobile screenshot</text>
+  <text x="195" y="362" fill="#64748b" font-family="Arial, sans-serif" font-size="15" text-anchor="middle">placeholder</text>
+  <text x="195" y="410" fill="#64748b" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">Replace with a dashboard capture.</text>
+</svg>
