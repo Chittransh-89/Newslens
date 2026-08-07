@@ -152,16 +152,24 @@ Sample response (one item shown per category for brevity):
 {
   "hacker_news": [{
     "title": "Example engineering story",
-    "description": "842 points | 121 comments on Hacker News.",
+    "description": "Top story from the Hacker News community.",
     "date": "2026-08-07T08:30:00+00:00",
-    "link": "https://example.com/story"
+    "link": "https://example.com/story",
+    "category": "Hacker News",
+    "source": "Hacker News",
+    "score": 842,
+    "comments": 121,
+    "reactions": null,
+    "tags": [],
+    "stars": null,
+    "stars_today": null
   }],
-  "devto": [{ "title": "Example Dev.to article", "description": "A short article summary.", "date": "2026-08-07T08:00:00+00:00", "link": "https://dev.to/example" }],
-  "layoffs_news": [{ "title": "Example layoffs headline", "description": "A clean feed summary.", "date": "2026-08-07T07:00:00+00:00", "link": "https://example.com/layoffs" }],
+  "devto": [{ "title": "Example Dev.to article", "description": "A short article summary.", "date": "2026-08-07T08:00:00+00:00", "link": "https://dev.to/example", "category": "Dev.to", "source": "Dev.to", "score": null, "comments": 5, "reactions": 46, "tags": ["webdev"], "stars": null, "stars_today": null }],
+  "layoffs_news": [{ "title": "Example layoffs headline", "description": "A clean feed summary.", "date": "2026-08-07T07:00:00+00:00", "link": "https://example.com/layoffs", "category": "Layoffs News", "source": "Bing News", "score": null, "comments": null, "reactions": null, "tags": [], "stars": null, "stars_today": null }],
   "hiring_news": [],
   "funding_news": [],
   "ai_jobs": [],
-  "github_trending": [{ "title": "owner/project", "description": "Repository summary | 350 stars today", "date": "Trending today", "link": "https://github.com/owner/project" }]
+  "github_trending": [{ "title": "owner/project", "description": "Repository summary", "date": "Trending today", "link": "https://github.com/owner/project", "category": "GitHub Trending", "source": "GitHub", "score": null, "comments": null, "reactions": null, "tags": [], "stars": "5,789", "stars_today": "2,271 stars today" }]
 }
 ```
 
