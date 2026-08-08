@@ -1,14 +1,17 @@
 import asyncio
+import logging
 from collections.abc import Awaitable
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import httpx
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, FeatureNotFound
 
 from app.config import Settings
 from app.models.schemas import NewsItem, NewsResponse
 from app.utils.helpers import clean_text, format_date
+
+logger = logging.getLogger(__name__)
 
 
 class NewsService:
@@ -34,14 +37,15 @@ class NewsService:
             headers={"User-Agent": self.settings.user_agent},
             follow_redirects=True,
         ) as client:
+            today = datetime.now().strftime("%d %B %Y")
             results = await asyncio.gather(
-                self._safe_fetch(self._fetch_hacker_news(client)),
-                self._safe_fetch(self._fetch_devto(client)),
-                self._safe_fetch(self._fetch_bing(client, "tech company layoffs", 4)),
-                self._safe_fetch(self._fetch_bing(client, "technology company hiring", 4)),
-                self._safe_fetch(self._fetch_bing(client, "startup funding raised", 4)),
-                self._safe_fetch(self._fetch_bing(client, "AI jobs demand", 4)),
-                self._safe_fetch(self._fetch_github_trending(client)),
+                self._safe_fetch("Hacker News", self._fetch_hacker_news(client)),
+                self._safe_fetch("Dev.to", self._fetch_devto(client)),
+                self._safe_fetch("Layoffs News", self._fetch_bing(client, f"layoffs {today} tech company", 4)),
+                self._safe_fetch("Hiring News", self._fetch_bing(client, f"tech company hiring {today}", 4)),
+                self._safe_fetch("Funding News", self._fetch_bing(client, f"startup funding raised million {today}", 4)),
+                self._safe_fetch("AI Jobs", self._fetch_bing(client, f"AI jobs demand {today}", 4)),
+                self._safe_fetch("GitHub Trending", self._fetch_github_trending(client)),
             )
 
         return NewsResponse(
@@ -50,10 +54,11 @@ class NewsService:
             github_trending=results[6],
         )
 
-    async def _safe_fetch(self, task: Awaitable[list[NewsItem]]) -> list[NewsItem]:
+    async def _safe_fetch(self, source: str, task: Awaitable[list[NewsItem]]) -> list[NewsItem]:
         """Resolve one source request without allowing it to fail the dashboard.
 
         Args:
+            source: Name used to identify an upstream failure in API logs.
             task: Awaitable that produces normalized items for a single source.
 
         Returns:
@@ -61,8 +66,9 @@ class NewsService:
         """
         try:
             return await task
-        except (httpx.HTTPError, ValueError, AttributeError):
+        except (httpx.HTTPError, ValueError, AttributeError, FeatureNotFound) as error:
             # A source failing should not prevent the dashboard from serving the others.
+            logger.warning("Unable to load %s: %s", source, error)
             return []
 
     async def _fetch_hacker_news(self, client: httpx.AsyncClient) -> list[NewsItem]:
@@ -198,10 +204,11 @@ class NewsService:
         Returns:
             Human-readable category label used by the API and UI.
         """
-        categories = {
-            "tech company layoffs": "Layoffs News",
-            "technology company hiring": "Hiring News",
-            "startup funding raised": "Funding News",
-            "AI jobs demand": "AI Jobs",
-        }
-        return categories[query]
+        normalized_query = query.lower()
+        if "layoffs" in normalized_query:
+            return "Layoffs News"
+        if "hiring" in normalized_query:
+            return "Hiring News"
+        if "funding" in normalized_query:
+            return "Funding News"
+        return "AI Jobs"
