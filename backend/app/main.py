@@ -18,4 +18,9 @@ app.include_router(news_router)
 
 @app.get("/health", tags=["health"])
 async def health_check() -> dict[str, str]:
+    """Report whether the API process is accepting requests.
+
+    Returns:
+        A small status payload for uptime checks and deployment probes.
+    """
     return {"status": "ok"}

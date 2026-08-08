@@ -13,9 +13,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
+        """Return the configured comma-separated browser origins as a clean list."""
         return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
 
 
 @lru_cache
 def get_settings() -> Settings:
+    """Create and cache application settings loaded from environment variables."""
     return Settings()

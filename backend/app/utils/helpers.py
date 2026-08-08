@@ -6,7 +6,15 @@ from bs4 import BeautifulSoup
 
 
 def clean_text(value: str | None, max_length: int = 280) -> str:
-    """Remove markup and normalize whitespace in source content."""
+    """Return safe display text from source content.
+
+    Args:
+        value: Optional source text, which may contain HTML markup.
+        max_length: Maximum returned character count before truncation.
+
+    Returns:
+        Normalized plain text or a fallback description when no text is available.
+    """
     text = BeautifulSoup(value or "", "html.parser").get_text(" ", strip=True)
     text = re.sub(r"\s+", " ", text).strip()
     if not text:
@@ -15,7 +23,14 @@ def clean_text(value: str | None, max_length: int = 280) -> str:
 
 
 def format_date(value: str | None) -> str:
-    """Return an ISO-8601 timestamp when a feed supplies a parseable date."""
+    """Normalize a feed date into an ISO timestamp or a readable fallback.
+
+    Args:
+        value: Optional RFC 2822 or ISO-8601 date supplied by a source.
+
+    Returns:
+        ISO-8601 text when parsing succeeds; otherwise a safe source value.
+    """
     if not value:
         return "Unknown date"
     try:

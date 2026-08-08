@@ -15,9 +15,20 @@ class NewsService:
     """Collect and normalize headlines from the public sources used by NewsLens."""
 
     def __init__(self, settings: Settings):
+        """Initialize the service with the shared application configuration.
+
+        Args:
+            settings: Runtime settings including request timeout and User-Agent.
+        """
         self.settings = settings
 
     async def get_all_news(self) -> NewsResponse:
+        """Fetch every news category concurrently and return a typed response.
+
+        Returns:
+            NewsResponse containing up to five normalized items per category.
+            A failed third-party source is represented as an empty category.
+        """
         async with httpx.AsyncClient(
             timeout=self.settings.request_timeout_seconds,
             headers={"User-Agent": self.settings.user_agent},
@@ -40,6 +51,14 @@ class NewsService:
         )
 
     async def _safe_fetch(self, task: Awaitable[list[NewsItem]]) -> list[NewsItem]:
+        """Resolve one source request without allowing it to fail the dashboard.
+
+        Args:
+            task: Awaitable that produces normalized items for a single source.
+
+        Returns:
+            Source results, or an empty list for an expected parsing/network error.
+        """
         try:
             return await task
         except (httpx.HTTPError, ValueError, AttributeError):
@@ -47,6 +66,14 @@ class NewsService:
             return []
 
     async def _fetch_hacker_news(self, client: httpx.AsyncClient) -> list[NewsItem]:
+        """Fetch the five leading Hacker News stories and their metadata.
+
+        Args:
+            client: Configured async HTTP client shared by the aggregation request.
+
+        Returns:
+            Normalized Hacker News story items.
+        """
         ids_response = await client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
         ids_response.raise_for_status()
         story_ids = ids_response.json()[:5]
@@ -63,23 +90,50 @@ class NewsService:
             comments = story.get("descendants", 0)
             stories.append(NewsItem(
                 title=clean_text(story["title"], 180),
-                description=f"{score} points | {comments} comments on Hacker News.",
+                description="Top story from the Hacker News community.",
                 date=datetime.fromtimestamp(story.get("time", 0), tz=timezone.utc).isoformat(),
                 link=story.get("url") or f"https://news.ycombinator.com/item?id={story['id']}",
+                category="Hacker News",
+                source="Hacker News",
+                score=score,
+                comments=comments,
             ))
         return stories
 
     async def _fetch_devto(self, client: httpx.AsyncClient) -> list[NewsItem]:
+        """Fetch current top articles from the public Dev.to API.
+
+        Args:
+            client: Configured async HTTP client shared by the aggregation request.
+
+        Returns:
+            Up to five normalized Dev.to article items.
+        """
         response = await client.get("https://dev.to/api/articles", params={"top": 7, "per_page": 5})
         response.raise_for_status()
         return [NewsItem(
             title=clean_text(article.get("title"), 180),
-            description=clean_text(article.get("description") or article.get("tag_list") and f"Tags: {', '.join(article['tag_list'][:3])}"),
+            description=clean_text(article.get("description")),
             date=format_date(article.get("published_at")),
             link=article["url"],
+            category="Dev.to",
+            source="Dev.to",
+            reactions=article.get("public_reactions_count", 0),
+            comments=article.get("comments_count", 0),
+            tags=[clean_text(tag, 40) for tag in article.get("tag_list", [])[:3]],
         ) for article in response.json() if article.get("title") and article.get("url")]
 
     async def _fetch_bing(self, client: httpx.AsyncClient, query: str, limit: int) -> list[NewsItem]:
+        """Fetch and parse a Bing News RSS query.
+
+        Args:
+            client: Configured async HTTP client shared by the aggregation request.
+            query: Search phrase used to define one business-news category.
+            limit: Maximum number of feed items to return.
+
+        Returns:
+            Normalized RSS items with HTML removed from descriptions.
+        """
         url = f"https://www.bing.com/news/search?{urlencode({'q': query, 'format': 'rss'})}"
         response = await client.get(url)
         response.raise_for_status()
@@ -96,10 +150,20 @@ class NewsService:
                 description=clean_text(description.get_text() if description else None),
                 date=format_date(published.get_text() if published else None),
                 link=link.get_text(strip=True),
+                category=self._bing_category(query),
+                source="Bing News",
             ))
         return articles
 
     async def _fetch_github_trending(self, client: httpx.AsyncClient) -> list[NewsItem]:
+        """Fetch the first five repositories listed on GitHub Trending.
+
+        Args:
+            client: Configured async HTTP client shared by the aggregation request.
+
+        Returns:
+            Normalized repository items with their current trend context.
+        """
         response = await client.get("https://github.com/trending")
         response.raise_for_status()
         page = BeautifulSoup(response.text, "html.parser")
@@ -111,13 +175,33 @@ class NewsService:
             name = clean_text(anchor.get_text(" "), 100).replace(" / ", "/")
             description = repo.select_one("p")
             stars_today = repo.select_one("span.d-inline-block.float-sm-right")
-            text = clean_text(description.get_text(" ") if description else None)
-            if stars_today:
-                text = f"{text} | {clean_text(stars_today.get_text(), 80)}"
+            star_links = repo.select("a.Link--muted")
             articles.append(NewsItem(
                 title=name,
-                description=text,
+                description=clean_text(description.get_text(" ") if description else None),
                 date="Trending today",
                 link=f"https://github.com{anchor['href']}",
+                category="GitHub Trending",
+                source="GitHub",
+                stars=clean_text(star_links[0].get_text() if star_links else "N/A", 30),
+                stars_today=clean_text(stars_today.get_text() if stars_today else "N/A", 80),
             ))
         return articles
+
+    @staticmethod
+    def _bing_category(query: str) -> str:
+        """Map an internal Bing search phrase to its dashboard category heading.
+
+        Args:
+            query: The query passed to the Bing News RSS endpoint.
+
+        Returns:
+            Human-readable category label used by the API and UI.
+        """
+        categories = {
+            "tech company layoffs": "Layoffs News",
+            "technology company hiring": "Hiring News",
+            "startup funding raised": "Funding News",
+            "AI jobs demand": "AI Jobs",
+        }
+        return categories[query]
