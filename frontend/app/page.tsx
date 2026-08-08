@@ -5,7 +5,7 @@ import { getAllNews, type NewsResponse } from "../lib/api";
 import { Navbar } from "./components/Navbar";
 import { Section } from "./components/Section";
 
-const sections: Array<[keyof NewsResponse, string, string]> = [["hacker_news", "Hacker News", "hacker-news"], ["devto", "Dev.to", "devto"], ["layoffs_news", "Layoffs", "layoffs"], ["hiring_news", "Hiring", "hiring"], ["funding_news", "Startup Funding", "funding"], ["ai_jobs", "AI Jobs", "ai-jobs"], ["github_trending", "GitHub Trending", "github"]];
+const sections: Array<[keyof NewsResponse, string, string]> = [["hacker_news", "Hacker News", "hacker-news"], ["devto", "Dev.to", "devto"], ["layoffs_news", "Layoffs News", "layoffs"], ["hiring_news", "Hiring News", "hiring"], ["funding_news", "Funding News", "funding"], ["ai_jobs", "AI Jobs Demand", "ai-jobs"], ["github_trending", "GitHub Trending", "github"]];
 
 export default function Home() {
   const [news, setNews] = useState<NewsResponse | null>(null);
