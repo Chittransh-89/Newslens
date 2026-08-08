@@ -8,7 +8,7 @@ NewsLens is a responsive technology-news dashboard that collects headlines from 
 - Uses concurrent asynchronous HTTP requests so one slow source does not delay the others unnecessarily.
 - Normalizes every story to separate `title`, `description`, `date`, and `link` fields.
 - Removes source HTML and limits each category to three to five useful items.
-- Keeps the dashboard usable when an individual external source fails; that category is returned empty.
+- Keeps the dashboard usable when an individual external source fails; that category is returned empty and the backend writes the source error to its logs.
 - Provides an accessible, mobile-first UI with a collapsed navigation menu, touch-friendly links, loading skeletons, error recovery, and responsive grids.
 - Includes OpenAPI documentation automatically through FastAPI at `/docs`.
 
